@@ -34,17 +34,9 @@ Tres detalles que importan:
     analítico contra diferencias finitas centradas. Si el error relativo no
     es chico, el espectro no sirve y conviene no mirarlo.
 
-Salidas por caso: lyap_<caso>.npz con el espectro, la historia de convergencia
-y la dimensión de Kaplan-Yorke, más una figura de convergencia.
+''
 
-Uso:    python lyapunov_variacional.py rossler roman_red
-        python lyapunov_variacional.py todos
-        (sin argumentos corre rossler, que tarda poco)
-
-Estructura de celdas para Spyder (# %%).
-"""
-
-# %% CELDA 0 - imports y utilidades
+# %% imports y utilidades
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
@@ -59,11 +51,6 @@ RTOL, ATOL = 1e-9, 1e-11
 
 @dataclass
 class Sistema:
-    """Un sistema dinámico listo para el cálculo del espectro.
-
-    f y J se escriben SIEMPRE en coordenadas físicas; el cambio a
-    coordenadas logarítmicas lo hace el motor a partir de la máscara `log`.
-    """
     nombre: str
     etiqueta: str                     # para las leyendas de las figuras
     f: Callable                       # f(t, u) -> du/dt   (coordenadas físicas)
@@ -131,7 +118,7 @@ def verificar_jacobiano(sis, U, t=0.0, h=1e-6):
     return np.abs(Gfd - Gan).max() / esc
 
 
-# %% CELDA 1 - motor: Benettin + QR
+# %% Benettin + QR
 def espectro_lyapunov(sis, verbose=True):
     """Espectro completo por ecuaciones variacionales con reortonormalización QR.
 
@@ -211,7 +198,7 @@ def espectro_lyapunov(sis, verbose=True):
                 t=tiempo, dky=dky, err_jac=err, tau=sis.tau, K=sis.K)
 
 
-# %% CELDA 2 - Rossler (control de validación)
+# %% Rossler (control)
 def sistema_rossler(a=0.2, b=0.2, c=5.7):
     """Rossler. Referencia: lambda = (0,0714 ; 0 ; -5,39)."""
     def f(t, u):
@@ -230,7 +217,7 @@ def sistema_rossler(a=0.2, b=0.2, c=5.7):
                    tau=1.0, K=4000, t_trans=500.0)
 
 
-# %% CELDA 3 - Roman y Bertolotti en red
+# %% Roman y Bertolotti en red
 PAR_ROMAN = dict(beta=2.0, alpha=0.05, gamma=0.05, lam=100.0, c=0.05, eps=0.01)
 
 
@@ -303,7 +290,7 @@ def sistema_roman(mult_delta=10.0, sigma=0.0, N=3, p=PAR_ROMAN,
                    tau=100.0, K=K, t_trans=t_trans, diagnostico=diagnostico)
 
 
-# %% CELDA 4 - HANDY igualitaria extendido a N sociedades
+# %%  HANDY igualitaria extendido a N sociedades
 PAR_HANDY = dict(alpha_m=1e-2, alpha_M=7e-2, beta_C=3e-2,
                  s=5e-4, rho=5e-3, gamma=1e-2, lam=100.0)
 
@@ -381,7 +368,7 @@ def sistema_handy_red(delta=3.3e-5, N=3, p=PAR_HANDY, K=600, t_trans=6.0e4):
                    tau=100.0, K=K, t_trans=t_trans, diagnostico=diagnostico)
 
 
-# %% CELDA 5 - HANDY igualitaria con forzado climático
+# %% HANDY igualitaria con forzado climático
 def sistema_handy_forzado(delta=2.40e-5, p=PAR_HANDY,
                           gamma0=1e-2, Ae=0.3, Te=1.0, Ai=0.7, Ti=75.0,
                           K=2000, t_trans=2.0e4):
@@ -409,7 +396,7 @@ def sistema_handy_forzado(delta=2.40e-5, p=PAR_HANDY,
                    tau=25.0, K=K, t_trans=t_trans, autonomo=False)
 
 
-# %% CELDA 6 - catálogo de casos
+# %% 
 def catalogo():
     dc = delta_critico_roman()
     return {
@@ -431,7 +418,7 @@ def catalogo():
 REFERENCIA = {"rossler": np.array([0.0714, 0.0, -5.39])}
 
 
-# %% CELDA 7 - corrida y figura
+# %% corrida
 def correr(nombres, hacer_figura=True):
     cat = catalogo()
     if nombres == ["todos"]:
@@ -496,41 +483,3 @@ def figura_convergencia(resultados, nombre="lyapunov_convergencia"):
     plt.savefig(f"{nombre}.png", dpi=200, bbox_inches="tight", pad_inches=0.2)
     plt.savefig(f"{nombre}.pdf", bbox_inches="tight", pad_inches=0.2)
     print(f"\nfigura guardada: {nombre}.png")
-
-
-# =====================================================================
-# PARA CORRER DESDE SPYDER: NO escribas nada en la consola.
-# Elegí el caso en la línea de abajo y apretá F5 (o el botón verde ▶ "Run").
-#
-# Opciones válidas:
-#   "rossler"          "roman_ciclo"      "roman_red"
-#   "roman_migracion"  "handy_red"        "handy_forzado"
-#   "todos"            (corre los 6, uno detrás del otro)
-# =====================================================================
-NOMBRE_A_CORRER = "roman_ciclo"   # <<--- CAMBIAR ACÁ, entre las comillas
-
-
-if __name__ == "__main__":
-    # Si lo corrés desde una terminal con argumentos (python archivo.py roman_red),
-    # esos argumentos tienen prioridad. Si no, usa NOMBRE_A_CORRER de arriba.
-    args = sys.argv[1:] or [NOMBRE_A_CORRER]
-    correr(args)
-
-
-# NOTA 1 (condiciones iniciales). Todos los casos de Roman arrancan con las
-# tres sociedades en el mismo estado, como en el trabajo original. Ese estado
-# pertenece al subespacio homogéneo, que es invariante, de modo que la
-# trayectoria sólo lo abandona por error de redondeo y tarda del orden de
-# 10^4 años en hacerlo. Por eso el transitorio descartado es largo y por eso
-# el diagnóstico imprime el apartamiento del subespacio homogéneo al terminar
-# el transitorio: si ese número sigue siendo del orden de 1e-12, la medición
-# se estaría haciendo sobre el ciclo límite homogéneo y no sobre el atractor
-# de la red, y hay que alargar t_trans.
-#
-# NOTA 2 (HANDY y el pliegue). El consumo y la mortalidad de HANDY son
-# funciones a trozos, de modo que el campo es continuo pero no derivable en
-# w = rho*x_C. El jacobiano analítico es exacto en cada rama y el pliegue es
-# un conjunto de medida nula, que es la práctica habitual; aun así, los
-# exponentes de HANDY son menos confiables que los de Roman, que es suave.
-# El control de diferencias finitas lo detecta: si una evaluación cae sobre
-# el pliegue, el error relativo del jacobiano sale grande.
